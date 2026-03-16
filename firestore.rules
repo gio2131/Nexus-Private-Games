@@ -1,15 +1,33 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: messages
+// Fields:
+//   - text: string (1-1000 chars) - The message content
+//   - username: string (2-20 chars) - The sender's name
+//   - timestamp: timestamp (required) - Server-side time
+//   - type: string ('message' or 'system') - Message category
+//
+// Collection: active_users
+// Fields:
+//   - username: string (2-20 chars) - Unique identifier
+//   - lastSeen: timestamp (required) - Heartbeat time
+//
+// ===============================================================
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper functions
+    // Helper Functions
     function isAuthenticated() {
       return request.auth != null;
     }
     
     function isValidMessage(data) {
       return data.keys().hasAll(['text', 'username', 'timestamp', 'type']) &&
-             data.text is string && data.text.size() > 0 && data.text.size() < 1000 &&
+             data.text is string && data.text.size() > 0 && data.text.size() <= 1000 &&
              data.username is string && data.username.size() >= 2 && data.username.size() <= 20 &&
              data.type in ['message', 'system'];
     }
@@ -21,23 +39,19 @@ service cloud.firestore {
 
     // Messages collection
     match /messages/{messageId} {
-      // Allow reading messages for everyone (authenticated or not, but let's require auth for safety if possible)
-      // Actually, for a public chat, we might allow public read, but let's stick to auth if the user logs in.
-      // The prompt says "enter a username", implying anonymous or simple auth.
-      // I'll use anonymous auth to keep it simple but secure.
+      // Allow public read for the chat prototype
       allow read: if true; 
-      allow create: if isAuthenticated() && isValidMessage(request.resource.data);
-      allow update, delete: if false; // Messages are immutable
+      // Allow creation if data is valid (loosened auth check for prototype)
+      allow create: if isValidMessage(request.resource.data);
+      allow update, delete: if false;
     }
 
     // Active users collection
     match /active_users/{username} {
       allow read: if true;
-      // Allow creating a user doc if it doesn't exist
-      allow create: if isAuthenticated() && isValidUser(request.resource.data) && request.resource.data.username == username;
-      // Allow updating lastSeen if it's the same user
-      allow update: if isAuthenticated() && isValidUser(request.resource.data) && resource.data.username == username;
-      allow delete: if isAuthenticated() && resource.data.username == username;
+      allow create: if isValidUser(request.resource.data) && request.resource.data.username == username;
+      allow update: if isValidUser(request.resource.data) && resource.data.username == username;
+      allow delete: if resource.data.username == username;
     }
   }
 }

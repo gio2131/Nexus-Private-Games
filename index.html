@@ -66,6 +66,33 @@
         </footer>
     </div>
 
-    <script type="module" src="script.js"></script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+        import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+
+        // Fetch config and initialize
+        fetch('./firebase-applet-config.json')
+            .then(response => response.json())
+            .then(config => {
+                const app = initializeApp(config);
+                window.db = getFirestore(app, config.firestoreDatabaseId);
+                window.auth = getAuth(app);
+                
+                // Load the main script after Firebase is ready
+                const script = document.createElement('script');
+                script.type = 'module';
+                script.src = 'script.js';
+                document.body.appendChild(script);
+            })
+            .catch(err => {
+                console.error("Failed to load Firebase config:", err);
+                // Fallback: load script anyway so games show up even if chat fails
+                const script = document.createElement('script');
+                script.type = 'module';
+                script.src = 'script.js';
+                document.body.appendChild(script);
+            });
+    </script>
 </body>
 </html>

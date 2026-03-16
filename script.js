@@ -1,4 +1,3 @@
-import { db, auth } from './firebase.ts';
 import { 
     collection, 
     addDoc, 
@@ -11,7 +10,7 @@ import {
     setDoc, 
     getDoc,
     deleteDoc
-} from 'firebase/firestore';
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 const games = [
     {
@@ -34,7 +33,6 @@ let currentView = 'games'; // 'games' or 'chat'
 let chatUsername = localStorage.getItem('chatUsername') || '';
 let messages = [];
 let userCount = 0;
-let connectionStatus = 'connected'; // Always connected for Firebase once auth is ready
 let unsubscribeMessages = null;
 let unsubscribeUsers = null;
 let heartbeatInterval = null;
@@ -263,19 +261,59 @@ function renderChat() {
     }
 }
 
+// Firestore Error Handling
+const OperationType = {
+    CREATE: 'create',
+    UPDATE: 'update',
+    DELETE: 'delete',
+    LIST: 'list',
+    GET: 'get',
+    WRITE: 'write',
+};
+
+function handleFirestoreError(error, operationType, path) {
+    const errInfo = {
+        error: error instanceof Error ? error.message : String(error),
+        authInfo: {
+            userId: window.auth?.currentUser?.uid,
+            email: window.auth?.currentUser?.email,
+            emailVerified: window.auth?.currentUser?.emailVerified,
+            isAnonymous: window.auth?.currentUser?.isAnonymous,
+        },
+        operationType,
+        path
+    };
+    console.error('Firestore Error: ', JSON.stringify(errInfo));
+    
+    // Show user-friendly error in UI if possible
+    const errorEl = document.getElementById('username-error');
+    if (errorEl) {
+        errorEl.textContent = "Connection issue. Please check if Anonymous Auth is enabled in Firebase.";
+        errorEl.classList.remove('hidden');
+    }
+    
+    throw new Error(JSON.stringify(errInfo));
+}
+
 function initFirebaseChat() {
+    if (!window.db) {
+        console.warn("Firebase not ready yet, retrying...");
+        setTimeout(initFirebaseChat, 500);
+        return;
+    }
+
     if (unsubscribeMessages) unsubscribeMessages();
     if (unsubscribeUsers) unsubscribeUsers();
 
     // Listen for messages
-    const q = query(collection(db, 'messages'), orderBy('timestamp', 'asc'), limit(100));
+    const q = query(collection(window.db, 'messages'), orderBy('timestamp', 'asc'), limit(100));
     unsubscribeMessages = onSnapshot(q, (snapshot) => {
         messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if (currentView === 'chat') renderChat();
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'messages'));
 
     // Listen for active users
-    const usersQ = query(collection(db, 'active_users'));
+    const usersQ = query(collection(window.db, 'active_users'));
     unsubscribeUsers = onSnapshot(usersQ, (snapshot) => {
         const now = Date.now();
         const active = snapshot.docs.filter(doc => {
@@ -285,17 +323,21 @@ function initFirebaseChat() {
         });
         userCount = active.length;
         if (currentView === 'chat') renderChat();
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'active_users'));
 
     // Heartbeat
     if (heartbeatInterval) clearInterval(heartbeatInterval);
     heartbeatInterval = setInterval(async () => {
-        if (chatUsername) {
-            const userRef = doc(db, 'active_users', chatUsername);
-            await setDoc(userRef, { 
-                username: chatUsername, 
-                lastSeen: serverTimestamp() 
-            }, { merge: true });
+        if (chatUsername && window.db) {
+            try {
+                const userRef = doc(window.db, 'active_users', chatUsername);
+                await setDoc(userRef, { 
+                    username: chatUsername, 
+                    lastSeen: serverTimestamp() 
+                }, { merge: true });
+            } catch (e) {
+                console.error("Heartbeat error:", e);
+            }
         }
     }, 30000);
 }
@@ -303,14 +345,13 @@ function initFirebaseChat() {
 window.joinChat = async () => {
     const input = document.getElementById('chat-username-input');
     const username = input.value.trim();
-    if (!username) return;
+    if (!username || !window.db) return;
 
     const errorEl = document.getElementById('username-error');
     if (errorEl) errorEl.classList.add('hidden');
 
     try {
-        // Check if username is taken and active
-        const userRef = doc(db, 'active_users', username);
+        const userRef = doc(window.db, 'active_users', username);
         const userSnap = await getDoc(userRef);
         
         if (userSnap.exists()) {
@@ -325,7 +366,6 @@ window.joinChat = async () => {
             }
         }
 
-        // Join
         await setDoc(userRef, { 
             username: username, 
             lastSeen: serverTimestamp() 
@@ -334,8 +374,7 @@ window.joinChat = async () => {
         chatUsername = username;
         localStorage.setItem('chatUsername', chatUsername);
         
-        // System message
-        await addDoc(collection(db, 'messages'), {
+        await addDoc(collection(window.db, 'messages'), {
             text: `${username} joined the chat`,
             username: 'System',
             timestamp: serverTimestamp(),
@@ -345,25 +384,25 @@ window.joinChat = async () => {
         initFirebaseChat();
         render();
     } catch (e) {
-        console.error("Join error:", e);
-        if (errorEl) {
-            errorEl.textContent = "Error joining chat. Please try again.";
-            errorEl.classList.remove('hidden');
-        }
+        handleFirestoreError(e, OperationType.WRITE, 'join_chat');
     }
 };
 
 window.leaveChat = async () => {
-    if (chatUsername) {
-        const userRef = doc(db, 'active_users', chatUsername);
-        await deleteDoc(userRef);
-        
-        await addDoc(collection(db, 'messages'), {
-            text: `${chatUsername} left the chat`,
-            username: 'System',
-            timestamp: serverTimestamp(),
-            type: 'system'
-        });
+    if (chatUsername && window.db) {
+        try {
+            const userRef = doc(window.db, 'active_users', chatUsername);
+            await deleteDoc(userRef);
+            
+            await addDoc(collection(window.db, 'messages'), {
+                text: `${chatUsername} left the chat`,
+                username: 'System',
+                timestamp: serverTimestamp(),
+                type: 'system'
+            });
+        } catch (e) {
+            console.error("Leave error:", e);
+        }
     }
 
     chatUsername = '';
@@ -378,10 +417,10 @@ window.leaveChat = async () => {
 window.sendChatMessage = async () => {
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
-    if (!text || !chatUsername) return;
+    if (!text || !chatUsername || !window.db) return;
 
     try {
-        await addDoc(collection(db, 'messages'), {
+        await addDoc(collection(window.db, 'messages'), {
             text: text,
             username: chatUsername,
             timestamp: serverTimestamp(),
@@ -389,7 +428,7 @@ window.sendChatMessage = async () => {
         });
         input.value = '';
     } catch (e) {
-        console.error("Send error:", e);
+        handleFirestoreError(e, OperationType.CREATE, 'messages');
     }
 };
 
