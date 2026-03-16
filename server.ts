@@ -7,8 +7,20 @@ import path from "path";
 async function startServer() {
     const app = express();
     const server = createServer(app);
-    const wss = new WebSocketServer({ server });
+    const wss = new WebSocketServer({ noServer: true });
     const PORT = 3000;
+
+    // Handle WebSocket upgrades explicitly
+    server.on("upgrade", (request, socket, head) => {
+        const { pathname } = new URL(request.url || "", `http://${request.headers.host}`);
+        if (pathname === "/ws") {
+            wss.handleUpgrade(request, socket, head, (ws) => {
+                wss.emit("connection", ws, request);
+            });
+        } else {
+            socket.destroy();
+        }
+    });
 
     // Active users: { ws: WebSocket, username: string }
     const activeUsers = new Map<WebSocket, string>();

@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isValidMessage(data) {
+      return data.keys().hasAll(['text', 'username', 'timestamp', 'type']) &&
+             data.text is string && data.text.size() > 0 && data.text.size() < 1000 &&
+             data.username is string && data.username.size() >= 2 && data.username.size() <= 20 &&
+             data.type in ['message', 'system'];
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['username', 'lastSeen']) &&
+             data.username is string && data.username.size() >= 2 && data.username.size() <= 20;
+    }
+
+    // Messages collection
+    match /messages/{messageId} {
+      // Allow reading messages for everyone (authenticated or not, but let's require auth for safety if possible)
+      // Actually, for a public chat, we might allow public read, but let's stick to auth if the user logs in.
+      // The prompt says "enter a username", implying anonymous or simple auth.
+      // I'll use anonymous auth to keep it simple but secure.
+      allow read: if true; 
+      allow create: if isAuthenticated() && isValidMessage(request.resource.data);
+      allow update, delete: if false; // Messages are immutable
+    }
+
+    // Active users collection
+    match /active_users/{username} {
+      allow read: if true;
+      // Allow creating a user doc if it doesn't exist
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && request.resource.data.username == username;
+      // Allow updating lastSeen if it's the same user
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && resource.data.username == username;
+      allow delete: if isAuthenticated() && resource.data.username == username;
+    }
+  }
+}

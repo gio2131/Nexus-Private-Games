@@ -1,3 +1,18 @@
+import { db, auth } from './firebase.ts';
+import { 
+    collection, 
+    addDoc, 
+    onSnapshot, 
+    query, 
+    orderBy, 
+    limit, 
+    serverTimestamp, 
+    doc, 
+    setDoc, 
+    getDoc,
+    deleteDoc
+} from 'firebase/firestore';
+
 const games = [
     {
         "id": "crazy-cattle-3d",
@@ -17,10 +32,12 @@ let selectedGame = null;
 let searchQuery = '';
 let currentView = 'games'; // 'games' or 'chat'
 let chatUsername = localStorage.getItem('chatUsername') || '';
-let socket = null;
 let messages = [];
 let userCount = 0;
-let connectionStatus = 'disconnected'; // 'disconnected', 'connecting', 'connected'
+let connectionStatus = 'connected'; // Always connected for Firebase once auth is ready
+let unsubscribeMessages = null;
+let unsubscribeUsers = null;
+let heartbeatInterval = null;
 
 const mainContent = document.getElementById('main-content');
 const searchInput = document.getElementById('search-input');
@@ -58,7 +75,7 @@ function renderGrid() {
     if (filteredGames.length > 0) {
         filteredGames.forEach(game => {
             html += `
-                <div class="group cursor-pointer game-card transition-all duration-300" onclick="selectGame('${game.id}')">
+                <div class="group cursor-pointer game-card transition-all duration-300" onclick="window.selectGame('${game.id}')">
                     <div class="relative aspect-[4/3] rounded-2xl overflow-hidden border border-white/10 bg-zinc-900 shadow-lg group-hover:border-emerald-500/50 transition-colors">
                         <img
                             src="${game.thumbnail}"
@@ -103,7 +120,7 @@ function renderPlayer() {
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <button 
-                        onclick="closeGame()"
+                        onclick="window.closeGame()"
                         class="p-2 hover:bg-white/5 rounded-lg transition-colors"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
@@ -165,11 +182,11 @@ function renderChat() {
                             <p id="username-error" class="text-red-500 text-xs mt-1 hidden"></p>
                         </div>
                         <button 
-                            onclick="joinChat()"
+                            onclick="window.joinChat()"
                             id="join-btn"
                             class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-xl transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            ${connectionStatus === 'connecting' ? 'Connecting...' : 'Join Chat'}
+                            Join Chat
                         </button>
                     </div>
                 </div>
@@ -184,12 +201,12 @@ function renderChat() {
                 <div>
                     <div class="flex items-center gap-2">
                         <h2 class="text-2xl font-bold">Live Chat</h2>
-                        <div class="w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-emerald-500' : 'bg-red-500'}"></div>
+                        <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
                     </div>
                     <p class="text-zinc-500 text-sm">${userCount} users online</p>
                 </div>
                 <button 
-                    onclick="leaveChat()"
+                    onclick="window.leaveChat()"
                     class="text-sm text-zinc-500 hover:text-red-400 transition-colors"
                 >
                     Leave Chat
@@ -220,13 +237,11 @@ function renderChat() {
                             type="text" 
                             id="chat-input"
                             class="flex-1 bg-white/5 border border-white/10 rounded-xl py-2 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
-                            placeholder="${connectionStatus === 'connected' ? 'Type a message...' : 'Connecting to server...'}"
-                            ${connectionStatus !== 'connected' ? 'disabled' : ''}
+                            placeholder="Type a message..."
                         />
                         <button 
-                            onclick="sendChatMessage()"
-                            class="bg-emerald-500 hover:bg-emerald-600 text-black p-2 rounded-xl transition-all disabled:opacity-50"
-                            ${connectionStatus !== 'connected' ? 'disabled' : ''}
+                            onclick="window.sendChatMessage()"
+                            class="bg-emerald-500 hover:bg-emerald-600 text-black p-2 rounded-xl transition-all"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg>
                         </button>
@@ -242,85 +257,50 @@ function renderChat() {
     const chatInput = document.getElementById('chat-input');
     if (chatInput) {
         chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendChatMessage();
+            if (e.key === 'Enter') window.sendChatMessage();
         });
         chatInput.focus();
     }
 }
 
-function initSocket() {
-    if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return;
+function initFirebaseChat() {
+    if (unsubscribeMessages) unsubscribeMessages();
+    if (unsubscribeUsers) unsubscribeUsers();
 
-    connectionStatus = 'connecting';
-    if (currentView === 'chat') renderChat();
+    // Listen for messages
+    const q = query(collection(db, 'messages'), orderBy('timestamp', 'asc'), limit(100));
+    unsubscribeMessages = onSnapshot(q, (snapshot) => {
+        messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (currentView === 'chat') renderChat();
+    });
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    
-    try {
-        socket = new WebSocket(`${protocol}//${host}`);
+    // Listen for active users
+    const usersQ = query(collection(db, 'active_users'));
+    unsubscribeUsers = onSnapshot(usersQ, (snapshot) => {
+        const now = Date.now();
+        const active = snapshot.docs.filter(doc => {
+            const data = doc.data();
+            const lastSeen = data.lastSeen?.toMillis() || 0;
+            return (now - lastSeen) < 120000; // Active in last 2 minutes
+        });
+        userCount = active.length;
+        if (currentView === 'chat') renderChat();
+    });
 
-        socket.onopen = () => {
-            connectionStatus = 'connected';
-            console.log('WebSocket connected');
-            if (chatUsername) {
-                socket.send(JSON.stringify({ type: 'join', username: chatUsername }));
-            }
-            if (currentView === 'chat') renderChat();
-        };
-
-        socket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            
-            if (data.type === 'join_success') {
-                chatUsername = data.username;
-                localStorage.setItem('chatUsername', chatUsername);
-                render();
-            } else if (data.type === 'error') {
-                const errorEl = document.getElementById('username-error');
-                if (errorEl) {
-                    errorEl.textContent = data.message;
-                    errorEl.classList.remove('hidden');
-                }
-                // If we were already in, but got an error (e.g. kicked or session issue)
-                if (chatUsername) {
-                    chatUsername = '';
-                    localStorage.removeItem('chatUsername');
-                    render();
-                }
-            } else if (data.type === 'message' || data.type === 'system') {
-                messages.push(data);
-                if (messages.length > 100) messages.shift();
-                if (currentView === 'chat') renderChat();
-            } else if (data.type === 'user_count') {
-                userCount = data.count;
-                if (currentView === 'chat') renderChat();
-            }
-        };
-
-        socket.onclose = () => {
-            console.log('WebSocket closed');
-            socket = null;
-            connectionStatus = 'disconnected';
-            if (currentView === 'chat') {
-                renderChat();
-                // Auto-reconnect
-                setTimeout(initSocket, 3000);
-            }
-        };
-
-        socket.onerror = (err) => {
-            console.error('WebSocket error:', err);
-            connectionStatus = 'disconnected';
-            if (currentView === 'chat') renderChat();
-        };
-    } catch (e) {
-        console.error('Failed to create WebSocket:', e);
-        connectionStatus = 'disconnected';
-    }
+    // Heartbeat
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+    heartbeatInterval = setInterval(async () => {
+        if (chatUsername) {
+            const userRef = doc(db, 'active_users', chatUsername);
+            await setDoc(userRef, { 
+                username: chatUsername, 
+                lastSeen: serverTimestamp() 
+            }, { merge: true });
+        }
+    }, 30000);
 }
 
-window.joinChat = () => {
+window.joinChat = async () => {
     const input = document.getElementById('chat-username-input');
     const username = input.value.trim();
     if (!username) return;
@@ -328,46 +308,89 @@ window.joinChat = () => {
     const errorEl = document.getElementById('username-error');
     if (errorEl) errorEl.classList.add('hidden');
 
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-        initSocket();
-        // Wait for connection to send join
-        let attempts = 0;
-        const checkInterval = setInterval(() => {
-            attempts++;
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ type: 'join', username }));
-                clearInterval(checkInterval);
-            } else if (attempts > 50 || connectionStatus === 'disconnected') {
-                clearInterval(checkInterval);
+    try {
+        // Check if username is taken and active
+        const userRef = doc(db, 'active_users', username);
+        const userSnap = await getDoc(userRef);
+        
+        if (userSnap.exists()) {
+            const data = userSnap.data();
+            const lastSeen = data.lastSeen?.toMillis() || 0;
+            if ((Date.now() - lastSeen) < 120000) {
                 if (errorEl) {
-                    errorEl.textContent = "Connection failed. Please try again.";
+                    errorEl.textContent = "Username already taken and active.";
                     errorEl.classList.remove('hidden');
                 }
+                return;
             }
-        }, 100);
-    } else {
-        socket.send(JSON.stringify({ type: 'join', username }));
+        }
+
+        // Join
+        await setDoc(userRef, { 
+            username: username, 
+            lastSeen: serverTimestamp() 
+        });
+
+        chatUsername = username;
+        localStorage.setItem('chatUsername', chatUsername);
+        
+        // System message
+        await addDoc(collection(db, 'messages'), {
+            text: `${username} joined the chat`,
+            username: 'System',
+            timestamp: serverTimestamp(),
+            type: 'system'
+        });
+
+        initFirebaseChat();
+        render();
+    } catch (e) {
+        console.error("Join error:", e);
+        if (errorEl) {
+            errorEl.textContent = "Error joining chat. Please try again.";
+            errorEl.classList.remove('hidden');
+        }
     }
 };
 
-window.leaveChat = () => {
+window.leaveChat = async () => {
+    if (chatUsername) {
+        const userRef = doc(db, 'active_users', chatUsername);
+        await deleteDoc(userRef);
+        
+        await addDoc(collection(db, 'messages'), {
+            text: `${chatUsername} left the chat`,
+            username: 'System',
+            timestamp: serverTimestamp(),
+            type: 'system'
+        });
+    }
+
     chatUsername = '';
     localStorage.removeItem('chatUsername');
-    if (socket) {
-        socket.close();
-        socket = null;
-    }
+    if (unsubscribeMessages) unsubscribeMessages();
+    if (unsubscribeUsers) unsubscribeUsers();
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
     messages = [];
     render();
 };
 
-window.sendChatMessage = () => {
+window.sendChatMessage = async () => {
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
-    if (!text || !socket) return;
+    if (!text || !chatUsername) return;
 
-    socket.send(JSON.stringify({ type: 'chat', text }));
-    input.value = '';
+    try {
+        await addDoc(collection(db, 'messages'), {
+            text: text,
+            username: chatUsername,
+            timestamp: serverTimestamp(),
+            type: 'message'
+        });
+        input.value = '';
+    } catch (e) {
+        console.error("Send error:", e);
+    }
 };
 
 window.selectGame = (id) => {
@@ -403,11 +426,12 @@ navGames.addEventListener('click', () => {
 
 navChat.addEventListener('click', () => {
     currentView = 'chat';
-    if (chatUsername) initSocket();
+    if (chatUsername) initFirebaseChat();
     render();
 });
 
 // Initial render
 render();
-if (chatUsername) initSocket();
+if (chatUsername) initFirebaseChat();
+
 
