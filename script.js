@@ -1,51 +1,36 @@
 const games = [
     {
-        "id": "2048",
-        "title": "2048",
-        "thumbnail": "https://picsum.photos/seed/2048/400/300",
-        "iframeUrl": "https://play2048.co/"
+        "id": "crazy-cattle-3d",
+        "title": "Crazy Cattle 3D",
+        "thumbnail": "https://rawcdn.githack.com/genizy/cc3d-mobile/main/CrazyCattle3D.png",
+        "iframeUrl": "crazy-cattle-3d.html"
     },
     {
-        "id": "tetris",
-        "title": "Tetris",
-        "thumbnail": "https://picsum.photos/seed/tetris/400/300",
-        "iframeUrl": "https://tetris.com/play-tetris"
-    },
-    {
-        "id": "slope",
-        "title": "Slope",
-        "thumbnail": "https://picsum.photos/seed/slope/400/300",
-        "iframeUrl": "https://krunker.io/"
-    },
-    {
-        "id": "snake",
-        "title": "Google Snake",
-        "thumbnail": "https://picsum.photos/seed/snake/400/300",
-        "iframeUrl": "https://www.google.com/logos/2010/pacman10-i.html"
-    },
-    {
-        "id": "flappy-bird",
-        "title": "Flappy Bird",
-        "thumbnail": "https://picsum.photos/seed/flappy/400/300",
-        "iframeUrl": "https://flappybird.io/"
-    },
-    {
-        "id": "crossy-road",
-        "title": "Crossy Road",
-        "thumbnail": "https://picsum.photos/seed/crossy/400/300",
-        "iframeUrl": "https://poki.com/en/g/crossy-road"
+        "id": "ragdoll-hit",
+        "title": "Ragdoll Hit",
+        "thumbnail": "https://rawcdn.githack.com/genizy/google-class/main/ragdoll-hit/thumbnail.png",
+        "iframeUrl": "ragdoll-hit.html"
     }
 ];
 
 let selectedGame = null;
 let searchQuery = '';
+let currentView = 'games'; // 'games' or 'chat'
+let chatUsername = localStorage.getItem('chatUsername') || '';
+let socket = null;
+let messages = [];
+let userCount = 0;
 
 const mainContent = document.getElementById('main-content');
 const searchInput = document.getElementById('search-input');
 const logo = document.getElementById('logo');
+const navGames = document.getElementById('nav-games');
+const navChat = document.getElementById('nav-chat');
 
 function render() {
-    if (selectedGame) {
+    if (currentView === 'chat') {
+        renderChat();
+    } else if (selectedGame) {
         renderPlayer();
     } else {
         renderGrid();
@@ -78,6 +63,7 @@ function renderGrid() {
                             src="${game.thumbnail}"
                             alt="${game.title}"
                             class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            referrerpolicy="no-referrer"
                         />
                         <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
                             <div class="w-full flex items-center justify-between">
@@ -157,8 +143,192 @@ function renderPlayer() {
     `;
 }
 
+function renderChat() {
+    if (!chatUsername) {
+        mainContent.innerHTML = `
+            <div class="max-w-md mx-auto py-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div class="bg-zinc-900/50 border border-white/10 rounded-3xl p-8 backdrop-blur-xl">
+                    <h2 class="text-2xl font-bold mb-2">Join Live Chat</h2>
+                    <p class="text-zinc-500 mb-6">Enter a unique username to start chatting with others.</p>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-400 mb-1">Username</label>
+                            <input 
+                                type="text" 
+                                id="chat-username-input"
+                                class="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
+                                placeholder="e.g. PlayerOne"
+                                maxlength="20"
+                            />
+                            <p id="username-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <button 
+                            onclick="joinChat()"
+                            class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-xl transition-all shadow-lg shadow-emerald-500/20"
+                        >
+                            Join Chat
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    mainContent.innerHTML = `
+        <div class="max-w-4xl mx-auto h-[70vh] flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold">Live Chat</h2>
+                    <p class="text-zinc-500 text-sm">${userCount} users online</p>
+                </div>
+                <button 
+                    onclick="leaveChat()"
+                    class="text-sm text-zinc-500 hover:text-red-400 transition-colors"
+                >
+                    Leave Chat
+                </button>
+            </div>
+
+            <div class="flex-1 bg-zinc-900/50 border border-white/10 rounded-3xl overflow-hidden flex flex-col backdrop-blur-xl">
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4">
+                    ${messages.map(msg => {
+                        if (msg.type === 'system') {
+                            return `<div class="text-center text-xs text-zinc-600 italic">${msg.text}</div>`;
+                        }
+                        const isMe = msg.username === chatUsername;
+                        return `
+                            <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+                                <span class="text-[10px] text-zinc-500 mb-1 px-2">${msg.username}</span>
+                                <div class="max-w-[80%] px-4 py-2 rounded-2xl text-sm ${isMe ? 'bg-emerald-500 text-black rounded-tr-none' : 'bg-white/10 text-white rounded-tl-none'}">
+                                    ${msg.text}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                
+                <div class="p-4 border-t border-white/5 bg-black/20">
+                    <div class="flex gap-2">
+                        <input 
+                            type="text" 
+                            id="chat-input"
+                            class="flex-1 bg-white/5 border border-white/10 rounded-xl py-2 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
+                            placeholder="Type a message..."
+                        />
+                        <button 
+                            onclick="sendChatMessage()"
+                            class="bg-emerald-500 hover:bg-emerald-600 text-black p-2 rounded-xl transition-all"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const chatMessages = document.getElementById('chat-messages');
+    if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput) {
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChatMessage();
+        });
+        chatInput.focus();
+    }
+}
+
+function initSocket() {
+    if (socket) return;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    socket = new WebSocket(`${protocol}//${window.location.host}`);
+
+    socket.onopen = () => {
+        if (chatUsername) {
+            socket.send(JSON.stringify({ type: 'join', username: chatUsername }));
+        }
+    };
+
+    socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'join_success') {
+            chatUsername = data.username;
+            localStorage.setItem('chatUsername', chatUsername);
+            render();
+        } else if (data.type === 'error') {
+            const errorEl = document.getElementById('username-error');
+            if (errorEl) {
+                errorEl.textContent = data.message;
+                errorEl.classList.remove('hidden');
+            }
+            chatUsername = '';
+            localStorage.removeItem('chatUsername');
+        } else if (data.type === 'message' || data.type === 'system') {
+            messages.push(data);
+            if (messages.length > 100) messages.shift();
+            if (currentView === 'chat') renderChat();
+        } else if (data.type === 'user_count') {
+            userCount = data.count;
+            if (currentView === 'chat') renderChat();
+        }
+    };
+
+    socket.onclose = () => {
+        socket = null;
+        // Reconnect after a delay if still in chat view
+        if (currentView === 'chat') {
+            setTimeout(initSocket, 3000);
+        }
+    };
+}
+
+window.joinChat = () => {
+    const input = document.getElementById('chat-username-input');
+    const username = input.value.trim();
+    if (!username) return;
+
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        initSocket();
+        // Wait for connection to send join
+        const checkInterval = setInterval(() => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ type: 'join', username }));
+                clearInterval(checkInterval);
+            }
+        }, 100);
+    } else {
+        socket.send(JSON.stringify({ type: 'join', username }));
+    }
+};
+
+window.leaveChat = () => {
+    chatUsername = '';
+    localStorage.removeItem('chatUsername');
+    if (socket) {
+        socket.close();
+        socket = null;
+    }
+    messages = [];
+    render();
+};
+
+window.sendChatMessage = () => {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text || !socket) return;
+
+    socket.send(JSON.stringify({ type: 'chat', text }));
+    input.value = '';
+};
+
 window.selectGame = (id) => {
     selectedGame = games.find(g => g.id === id);
+    currentView = 'games';
     render();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
@@ -170,15 +340,30 @@ window.closeGame = () => {
 
 searchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value;
-    if (!selectedGame) renderGrid();
+    if (currentView === 'games' && !selectedGame) renderGrid();
 });
 
 logo.addEventListener('click', () => {
     selectedGame = null;
+    currentView = 'games';
     searchQuery = '';
     searchInput.value = '';
     render();
 });
 
+navGames.addEventListener('click', () => {
+    currentView = 'games';
+    selectedGame = null;
+    render();
+});
+
+navChat.addEventListener('click', () => {
+    currentView = 'chat';
+    if (chatUsername) initSocket();
+    render();
+});
+
 // Initial render
 render();
+if (chatUsername) initSocket();
+
