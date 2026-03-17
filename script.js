@@ -1,4 +1,7 @@
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { getAuth } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { 
+    getFirestore,
     collection, 
     addDoc, 
     onSnapshot, 
@@ -11,6 +14,25 @@ import {
     getDoc,
     deleteDoc
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+// Initialize Firebase variables
+let db = null;
+let auth = null;
+
+// Fetch config and initialize Firebase
+fetch('./firebase-applet-config.json')
+    .then(response => response.json())
+    .then(config => {
+        const app = initializeApp(config);
+        db = getFirestore(app, config.firestoreDatabaseId);
+        auth = getAuth(app);
+        window.db = db; // For debugging if needed
+        
+        if (chatUsername) initFirebaseChat();
+    })
+    .catch(err => {
+        console.error("Firebase initialization failed:", err);
+    });
 
 const games = [
     {
@@ -275,10 +297,10 @@ function handleFirestoreError(error, operationType, path) {
     const errInfo = {
         error: error instanceof Error ? error.message : String(error),
         authInfo: {
-            userId: window.auth?.currentUser?.uid,
-            email: window.auth?.currentUser?.email,
-            emailVerified: window.auth?.currentUser?.emailVerified,
-            isAnonymous: window.auth?.currentUser?.isAnonymous,
+            userId: auth?.currentUser?.uid,
+            email: auth?.currentUser?.email,
+            emailVerified: auth?.currentUser?.emailVerified,
+            isAnonymous: auth?.currentUser?.isAnonymous,
         },
         operationType,
         path
@@ -296,7 +318,7 @@ function handleFirestoreError(error, operationType, path) {
 }
 
 function initFirebaseChat() {
-    if (!window.db) {
+    if (!db) {
         console.warn("Firebase not ready yet, retrying...");
         setTimeout(initFirebaseChat, 500);
         return;
@@ -306,14 +328,14 @@ function initFirebaseChat() {
     if (unsubscribeUsers) unsubscribeUsers();
 
     // Listen for messages
-    const q = query(collection(window.db, 'messages'), orderBy('timestamp', 'asc'), limit(100));
+    const q = query(collection(db, 'messages'), orderBy('timestamp', 'asc'), limit(100));
     unsubscribeMessages = onSnapshot(q, (snapshot) => {
         messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if (currentView === 'chat') renderChat();
     }, (error) => handleFirestoreError(error, OperationType.GET, 'messages'));
 
     // Listen for active users
-    const usersQ = query(collection(window.db, 'active_users'));
+    const usersQ = query(collection(db, 'active_users'));
     unsubscribeUsers = onSnapshot(usersQ, (snapshot) => {
         const now = Date.now();
         const active = snapshot.docs.filter(doc => {
@@ -328,9 +350,9 @@ function initFirebaseChat() {
     // Heartbeat
     if (heartbeatInterval) clearInterval(heartbeatInterval);
     heartbeatInterval = setInterval(async () => {
-        if (chatUsername && window.db) {
+        if (chatUsername && db) {
             try {
-                const userRef = doc(window.db, 'active_users', chatUsername);
+                const userRef = doc(db, 'active_users', chatUsername);
                 await setDoc(userRef, { 
                     username: chatUsername, 
                     lastSeen: serverTimestamp() 
@@ -345,13 +367,13 @@ function initFirebaseChat() {
 window.joinChat = async () => {
     const input = document.getElementById('chat-username-input');
     const username = input.value.trim();
-    if (!username || !window.db) return;
+    if (!username || !db) return;
 
     const errorEl = document.getElementById('username-error');
     if (errorEl) errorEl.classList.add('hidden');
 
     try {
-        const userRef = doc(window.db, 'active_users', username);
+        const userRef = doc(db, 'active_users', username);
         const userSnap = await getDoc(userRef);
         
         if (userSnap.exists()) {
@@ -374,7 +396,7 @@ window.joinChat = async () => {
         chatUsername = username;
         localStorage.setItem('chatUsername', chatUsername);
         
-        await addDoc(collection(window.db, 'messages'), {
+        await addDoc(collection(db, 'messages'), {
             text: `${username} joined the chat`,
             username: 'System',
             timestamp: serverTimestamp(),
@@ -389,12 +411,12 @@ window.joinChat = async () => {
 };
 
 window.leaveChat = async () => {
-    if (chatUsername && window.db) {
+    if (chatUsername && db) {
         try {
-            const userRef = doc(window.db, 'active_users', chatUsername);
+            const userRef = doc(db, 'active_users', chatUsername);
             await deleteDoc(userRef);
             
-            await addDoc(collection(window.db, 'messages'), {
+            await addDoc(collection(db, 'messages'), {
                 text: `${chatUsername} left the chat`,
                 username: 'System',
                 timestamp: serverTimestamp(),
@@ -417,10 +439,10 @@ window.leaveChat = async () => {
 window.sendChatMessage = async () => {
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
-    if (!text || !chatUsername || !window.db) return;
+    if (!text || !chatUsername || !db) return;
 
     try {
-        await addDoc(collection(window.db, 'messages'), {
+        await addDoc(collection(db, 'messages'), {
             text: text,
             username: chatUsername,
             timestamp: serverTimestamp(),
