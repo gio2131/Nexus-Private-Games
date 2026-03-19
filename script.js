@@ -34,14 +34,14 @@ fetch('./firebase-applet-config.json')
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                console.log("User logged in:", user.email, user.uid);
                 if (user.email === "gigip9612@gmail.com") {
                     initAdminListeners();
                 }
                 initUserListeners(user.uid);
+                checkEntryLogin();
             }
         });
-
-        checkEntryLogin();
 
         if (chatUsername) initFirebaseChat();
     })
@@ -161,6 +161,7 @@ let heartbeatInterval = null;
 let lastMessageSentAt = 0;
 let isTrusted = false;
 let registeredUsers = [];
+let suggestions = [];
 let currentCatImage = '';
 let currentVideoId = '';
 let currentTheme = localStorage.getItem('currentTheme') || 'default';
@@ -185,6 +186,10 @@ function initAdminListeners() {
         registeredUsers = snapshot.docs.map(doc => doc.data());
         if (currentView === 'trusted') render();
     });
+    onSnapshot(collection(db, 'suggestions'), (snapshot) => {
+        suggestions = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+        if (currentView === 'trusted') render();
+    });
 }
 
 const mainContent = document.getElementById('main-content');
@@ -195,6 +200,7 @@ const navChat = document.getElementById('nav-chat');
 const navOthers = document.getElementById('nav-others');
 const navVideo = document.getElementById('nav-video');
 const navThemes = document.getElementById('nav-themes');
+const navSuggest = document.getElementById('nav-suggest');
 const navTrusted = document.getElementById('nav-trusted');
 
 function render() {
@@ -207,6 +213,8 @@ function render() {
         renderVideoPlayer();
     } else if (currentView === 'themes') {
         renderThemes();
+    } else if (currentView === 'suggest') {
+        renderSuggest();
     } else if (currentView === 'trusted') {
         renderTrusted();
     } else if (selectedGame) {
@@ -349,6 +357,38 @@ function renderVideoPlayer() {
         });
     }
 }
+
+function renderSuggest() {
+    mainContent.innerHTML = `
+        <div class="max-w-2xl mx-auto py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div class="bg-zinc-900/50 border border-white/10 rounded-3xl p-8 backdrop-blur-xl">
+                <h2 class="text-3xl font-bold mb-4">Suggest a New Game</h2>
+                <p class="text-zinc-500 mb-8">Have a game you want to see? Let us know!</p>
+                <div class="space-y-4">
+                    <input type="text" id="suggestion-title" placeholder="Game Title" class="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all">
+                    <textarea id="suggestion-desc" placeholder="Brief description or link" class="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all h-32"></textarea>
+                    <button onclick="window.submitSuggestion()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 rounded-xl transition-all shadow-lg shadow-emerald-500/20">Submit Suggestion</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+window.submitSuggestion = async () => {
+    const title = document.getElementById('suggestion-title').value.trim();
+    const desc = document.getElementById('suggestion-desc').value.trim();
+    if (title && desc) {
+        await addDoc(collection(db, 'suggestions'), {
+            title,
+            desc,
+            username: sessionStorage.getItem('user_name') || 'Anonymous',
+            timestamp: serverTimestamp()
+        });
+        alert('Suggestion submitted!');
+        document.getElementById('suggestion-title').value = '';
+        document.getElementById('suggestion-desc').value = '';
+    }
+};
 
 function renderThemes() {
     mainContent.innerHTML = `
@@ -642,6 +682,39 @@ function renderTrusted() {
                                             </button>
                                         </div>
                                     </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path></svg>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold">Game Suggestions</h2>
+                            <p class="text-zinc-500 text-sm">Review user suggested games</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto mb-8">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b border-white/5 text-zinc-500 text-sm">
+                                <th class="pb-4 font-medium">Username</th>
+                                <th class="pb-4 font-medium">Title</th>
+                                <th class="pb-4 font-medium">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5">
+                            ${suggestions.map(s => `
+                                <tr class="group">
+                                    <td class="py-4 font-medium">${s.username}</td>
+                                    <td class="py-4">${s.title}</td>
+                                    <td class="py-4 text-zinc-400">${s.desc}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -1520,6 +1593,11 @@ navThemes.addEventListener('click', () => {
     render();
 });
 
+navSuggest.addEventListener('click', () => {
+    currentView = 'suggest';
+    render();
+});
+
 navTrusted.addEventListener('click', () => {
     currentView = 'trusted';
     render();
@@ -1544,6 +1622,11 @@ function checkEntryLogin() {
                 }
             }
         };
+    } else {
+        // User already has a name, ensure they are registered
+        if (auth.currentUser) {
+            registerUser(auth.currentUser.uid, savedName);
+        }
     }
 }
 
