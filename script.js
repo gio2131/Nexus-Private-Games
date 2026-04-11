@@ -1,5 +1,8 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { GoogleGenAI } from "@google/genai";
+import { marked } from 'marked';
+import katex from 'katex';
 import { 
     getFirestore,
     collection, 
@@ -52,139 +55,197 @@ const games = [
         "id": "csgo-clicker",
         "title": "CS:GO Clicker",
         "thumbnail": "https://s.yimg.com/fz/api/res/1.2/xrJXp46VQQK.ekX3EV1uEg--~C/YXBwaWQ9c3JjaGRkO2ZpPWZpbGw7aD0yNDA7cT0xMDA7dz0yNDA-/https://s.yimg.com/cv/apiv2/default/20230504/cs-go.png",
-        "iframeUrl": "csgo-clicker.html"
+        "iframeUrl": "csgo-clicker.html",
+        "category": "Action"
     },
     {
         "id": "basketball-stars",
         "title": "Basketball Stars",
         "thumbnail": "https://img-cdn.heygame.io/gameimages/8efc8be9-15e4-4a70-8d5d-3082252dd12e-Basketball%20Stars.webp",
-        "iframeUrl": "basketball-stars.html"
+        "iframeUrl": "basketball-stars.html",
+        "category": "Sports"
     },
     {
         "id": "pvz",
         "title": "Plants Vs Zombies",
         "thumbnail": "https://vignette.wikia.nocookie.net/logopedia/images/0/01/Pvz_logo_stacked_rgb.png/revision/latest?cb=20120408101754",
-        "iframeUrl": "pvz.html"
+        "iframeUrl": "pvz.html",
+        "category": "Strategy"
     },
     {
         "id": "minecraft",
         "title": "Minecraft",
         "thumbnail": "https://logos-world.net/wp-content/uploads/2020/04/Minecraft-Emblem.jpg",
-        "iframeUrl": "minecraft.html"
+        "iframeUrl": "minecraft.html",
+        "category": "Sandbox"
     },
     {
         "id": "retrobowl",
         "title": "Retro Bowl",
         "thumbnail": "https://i.ibb.co/ZX99dDz/retro-bowl-unblocked.jpg",
-        "iframeUrl": "https://game316009.konggames.com/gamez/0031/6009/live/index.html"
+        "iframeUrl": "https://game316009.konggames.com/gamez/0031/6009/live/index.html",
+        "category": "Sports"
     },
     {
         "id": "8ball",
         "title": "8 Ball Pool",
         "thumbnail": "https://img-cdn.heygame.io/gameimages/b16adad8-cff5-4274-84a3-3bc8e1a6205c-8%20Ball%20Pool%20Online.webp",
-        "iframeUrl": "8ball.html"
+        "iframeUrl": "8ball.html",
+        "category": "Sports"
     },
     {
         "id": "bloons-td",
         "title": "Bloons TD",
         "thumbnail": "https://assets.nintendo.com/image/upload/c_fill,w_1200/q_auto:best/f_auto/dpr_2.0/ncom/en_US/games/switch/b/bloons-td-5-switch/hero",
-        "iframeUrl": "bloons-td.html"
+        "iframeUrl": "bloons-td.html",
+        "category": "Strategy"
     },
     {
         "id": "blackjack",
         "title": "BlackJack",
         "thumbnail": "https://www.888casino.com/blog/sites/newblog.888casino.com/files/inline-images/blackjack_1.jpg",
-        "iframeUrl": "blackjack-game.html"
+        "iframeUrl": "blackjack-game.html",
+        "category": "Casino"
     },
     {
         "id": "spacebar-clicker",
         "title": "Spacebar Clicker",
         "thumbnail": "https://tse2.mm.bing.net/th/id/OIP.BaaQE0h22Ri8w4h2MAOZwgHaHa?pid=Api&h=220&P=0",
-        "iframeUrl": "spacebar-clicker.html"
+        "iframeUrl": "spacebar-clicker.html",
+        "category": "Action"
     },
     {
         "id": "geometry-dash",
         "title": "Geometry Dash",
         "thumbnail": "https://is1-ssl.mzstatic.com/image/thumb/Purple112/v4/2a/6f/ea/2a6feaae-3202-5356-eb1b-409208bcb0af/AppIcon-0-0-1x_U007emarketing-0-0-0-10-0-0-sRGB-0-0-0-GLES2_U002c0-512MB-85-220-0-0.png/1200x630wa.png",
-        "iframeUrl": "geometry-dash.html"
+        "iframeUrl": "geometry-dash.html",
+        "category": "Action"
     },
     {
         "id": "crazy-cattle-3d",
         "title": "Crazy Cattle 3D",
         "thumbnail": "https://rawcdn.githack.com/genizy/cc3d-mobile/main/CrazyCattle3D.png",
-        "iframeUrl": "crazy-cattle-3d.html"
+        "iframeUrl": "crazy-cattle-3d.html",
+        "category": "Adventure"
     },
     {
         "id": "ragdoll-hit",
         "title": "Ragdoll Hit",
         "thumbnail": "https://rawcdn.githack.com/genizy/google-class/main/ragdoll-hit/thumbnail.png",
-        "iframeUrl": "ragdoll-hit.html"
+        "iframeUrl": "ragdoll-hit.html",
+        "category": "Action"
     },
     {
         "id": "ultrakill",
         "title": "ULTRAKILL",
         "thumbnail": "https://wallpapers.com/images/hd/ultrakill-game-artwork-xgsd9l8nrbkuldvg.jpg",
-        "iframeUrl": "ultrakill.html"
+        "iframeUrl": "ultrakill.html",
+        "category": "Action"
     },
     {
         "id": "drive-mad",
         "title": "Drive Mad",
         "thumbnail": "https://github.com/WanoCapy/ChickenKingsVault/blob/main/drivemad.png?raw=true",
-        "iframeUrl": "drive-mad.html"
+        "iframeUrl": "drive-mad.html",
+        "category": "Racing"
     },
     {
         "id": "melon-playground",
         "title": "Melon Playground",
         "thumbnail": "https://i.pinimg.com/736x/bd/e7/f5/bde7f58165f0359b49ba628f16727db5.jpg",
-        "iframeUrl": "melon-playground.html"
+        "iframeUrl": "melon-playground.html",
+        "category": "Sandbox"
+    },
+    {
+        "id": "granny",
+        "title": "Granny",
+        "thumbnail": "https://github.com/WanoCapy/ChickenKingsVault/blob/main/gameimages/granny.png?raw=true",
+        "iframeUrl": "granny.html",
+        "category": "Horror"
+    },
+    {
+        "id": "infinite-craft",
+        "title": "Infinite Craft",
+        "thumbnail": "https://primagames.com/wp-content/uploads/2024/02/infinite-craft-adam-eve.jpg?fit=1200%2C675",
+        "iframeUrl": "infinite-craft.html",
+        "category": "Puzzle"
+    },
+    {
+        "id": "snow-rider-3d",
+        "title": "Snow Rider 3D",
+        "thumbnail": "https://play-lh.googleusercontent.com/uN5CywrCDvsutWq8RaRa5wPJryI1pkDhktF-zfAhwzx875lftsAIDMtYLbgUM1k6VwuoVM5HjYKCrebmI1uMKdc",
+        "iframeUrl": "snow-rider-3d.html",
+        "category": "Sports"
+    },
+    {
+        "id": "sonic-but-better",
+        "title": "Sonic but Better..?",
+        "thumbnail": "https://ichef.bbci.co.uk/news/976/cpsprodpb/FB73/production/_119017346_sonicoldemblem1.jpg",
+        "iframeUrl": "sonic-but-better.html",
+        "category": "Action"
+    },
+    {
+        "id": "baldis-basics-classic",
+        "title": "Baldi's Basics Classic",
+        "thumbnail": "https://github.com/WanoCapy/ChickenKingsVault/blob/main/gameimages/baldi'sbasicsplus.webp?raw=true",
+        "iframeUrl": "baldis-basics.html",
+        "category": "Horror"
     },
     {
         "id": "baldis-basics",
         "title": "Baldi's Basics Plus",
         "thumbnail": "https://i.ytimg.com/vi/7SKjBg1eslk/maxresdefault.jpg",
-        "iframeUrl": "baldis-basics.html"
+        "iframeUrl": "baldis-basics.html",
+        "category": "Horror"
     },
     {
         "id": "fnaf1",
         "title": "Five Nights at Freddy's 1",
         "thumbnail": "https://image.api.playstation.com/vulcan/img/cfn/11307DoSLwchucsk9cIFbYAUkuJPuQv-VO-yZnBwENvMx2LIl8KhWu89t3V7zhDTFfE55wbSW5908XNkd_RJeNid8t4tbScw.png",
-        "iframeUrl": "fnaf1.html"
+        "iframeUrl": "fnaf1.html",
+        "category": "FNAF"
     },
     {
         "id": "fnaf2",
         "title": "Five Nights at Freddy's 2",
         "thumbnail": "https://tse1.mm.bing.net/th/id/OIP.WbMxAHSM184KwBFjFxyg8wHaEK?pid=Api&h=220&P=0",
-        "iframeUrl": "fnaf2.html"
+        "iframeUrl": "fnaf2.html",
+        "category": "FNAF"
     },
     {
         "id": "fnaf3",
         "title": "Five Nights at Freddy's 3",
         "thumbnail": "https://assets.nintendo.com/image/upload/c_fill,w_1200/q_auto:best/f_auto/dpr_2.0/ncom/software/switch/70010000024638/08708de0a6534fc7ace6a3a76fa4a0a2294c27484a20d93146f66d392699ee5f",
-        "iframeUrl": "fnaf3.html"
+        "iframeUrl": "fnaf3.html",
+        "category": "FNAF"
     },
     {
         "id": "fnaf4",
         "title": "Five Nights at Freddy's 4",
         "thumbnail": "https://assets.nintendo.com/image/upload/c_fill,w_1200/q_auto:best/f_auto/dpr_2.0/ncom/en_US/games/switch/f/five-nights-at-freddys-4-switch/hero",
-        "iframeUrl": "fnaf4.html"
+        "iframeUrl": "fnaf4.html",
+        "category": "FNAF"
     },
     {
         "id": "fnaf-ps",
         "title": "Five Nights at Freddy's Pizzeria Simulator",
         "thumbnail": "https://nintendoeverything.com/wp-content/uploads/freddy-fazbears-pizza-simulator-1.jpg",
-        "iframeUrl": "fnaf-ps.html"
+        "iframeUrl": "fnaf-ps.html",
+        "category": "FNAF"
     },
     {
         "id": "fnaf-ucn",
         "title": "FNAF UCN",
         "thumbnail": "https://play-lh.googleusercontent.com/pB7dsLLcRgADtFpEPeKc5mSyAn1E1JzrdQ1V7-Y5hizgub3G8e9UJIc5opC9mYXKSBw",
-        "iframeUrl": "fnaf-ucn.html"
+        "iframeUrl": "fnaf-ucn.html",
+        "category": "FNAF"
     },
     {
         "id": "fnaf-world",
         "title": "Fnaf World",
         "thumbnail": "https://imag.malavida.com/mvimgbig/download-fs/fnaf-world-27444-3.jpg",
-        "iframeUrl": "fnaf-world.html"
+        "iframeUrl": "fnaf-world.html",
+        "category": "FNAF"
     }
 ];
 
@@ -200,28 +261,22 @@ let unsubscribeAnnouncements = null;
 let heartbeatInterval = null;
 let lastMessageSentAt = 0;
 let isTrusted = false;
+let isOwner = false;
 let registeredUsers = [];
+let activeUsers = [];
 let suggestions = [];
-let currentCatImage = '';
-let currentVideoId = '';
+// Removed currentVideoId.
 let currentTheme = localStorage.getItem('currentTheme') || 'default';
 let customThemeUrl = localStorage.getItem('customThemeUrl') || '';
-const CAT_IMAGES = [
-    'https://i.pinimg.com/736x/e9/7c/fe/e97cfea50835dc14689ba16f10a47216.jpg',
-    'https://i.pinimg.com/736x/6f/44/60/6f446080c188b1eaaeb22264d9d250cd.jpg',
-    'https://i.pinimg.com/736x/49/62/b0/4962b01ecb81613e7197f83342ea5ede.jpg',
-    'https://i.pinimg.com/736x/82/76/de/8276def31054c455dad15a84619df78b.jpg',
-    'https://i.pinimg.com/736x/ca/91/67/ca9167da99ae2709a40fb261229d0256.jpg',
-    'https://i.pinimg.com/736x/38/b7/d1/38b7d17290eae7f95b332d454ae86272.jpg',
-    'https://i.pinimg.com/1200x/e5/9e/6e/e59e6e13619242230110d1920878ae55.jpg',
-    'https://i.pinimg.com/736x/ad/95/93/ad9593d4e16ce6b64b6a2fd08aff1441.jpg',
-    'https://i.pinimg.com/736x/c7/ab/d0/c7abd0abeaa1fbe932a9225ca90140fe.jpg',
-    'https://i.pinimg.com/736x/1a/6e/d5/1a6ed57b5d233d2edda76348e254da7b.jpg'
-];
 const SLOW_MODE_MS = 2000;
 const TRUSTED_CODE = "00999";
+const OWNER_CODE = "ImSoEpic";
 
 function initAdminListeners() {
+    if (!db) {
+        setTimeout(initAdminListeners, 100);
+        return;
+    }
     onSnapshot(collection(db, 'users'), (snapshot) => {
         registeredUsers = snapshot.docs.map(doc => doc.data());
         if (currentView === 'trusted') render();
@@ -237,24 +292,29 @@ const searchInput = document.getElementById('search-input');
 const logo = document.getElementById('logo');
 const navGames = document.getElementById('nav-games');
 const navChat = document.getElementById('nav-chat');
-const navOthers = document.getElementById('nav-others');
-const navVideo = document.getElementById('nav-video');
 const navThemes = document.getElementById('nav-themes');
 const navSuggest = document.getElementById('nav-suggest');
 const navTrusted = document.getElementById('nav-trusted');
+const navCategories = document.getElementById('nav-categories');
+const navAIChat = document.getElementById('nav-aichat');
+
+navAIChat.addEventListener('click', () => {
+    currentView = 'aichat';
+    render();
+});
 
 function render() {
     applyTheme(currentTheme, customThemeUrl);
     if (currentView === 'chat') {
         renderChat();
-    } else if (currentView === 'others') {
-        renderOthers();
-    } else if (currentView === 'video') {
-        renderVideoPlayer();
     } else if (currentView === 'themes') {
         renderThemes();
     } else if (currentView === 'suggest') {
         renderSuggest();
+    } else if (currentView === 'categories') {
+        renderCategories();
+    } else if (currentView === 'aichat') {
+        renderAIChat();
     } else if (currentView === 'trusted') {
         renderTrusted();
     } else if (selectedGame) {
@@ -286,128 +346,16 @@ window.selectTrustedGame = (id) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-function renderOthers() {
-    mainContent.innerHTML = `
-        <div class="max-w-2xl mx-auto py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div class="bg-zinc-900/50 border border-white/10 rounded-3xl p-8 backdrop-blur-xl text-center">
-                <div class="w-16 h-16 bg-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-500 mx-auto mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.27 1.73 4.42 0 6.42-1.73 2-5 1.71-5 1.71s-3.33.29-5-1.71c-1.73-2-.57-5.15 0-6.42 0 0-1.82-6.42-.42-7 1.39-.58 4.64.26 6.42 2.26.65-.17 1.33-.26 2-.26Z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><circle cx="9" cy="11" r="1"/><circle cx="15" cy="11" r="1"/></svg>
-                </div>
-                <h2 class="text-3xl font-bold mb-4">Cat Generator</h2>
-                <p class="text-zinc-500 mb-8">Click the button below to see a random cute cat!</p>
-                
-                <div class="mb-8 min-h-[300px] flex items-center justify-center">
-                    ${currentCatImage ? `
-                        <div class="relative group">
-                            <img 
-                                src="${currentCatImage}" 
-                                alt="Random Cat" 
-                                class="max-w-full h-auto rounded-2xl shadow-2xl border border-white/10 animate-in zoom-in-95 duration-300"
-                                referrerpolicy="no-referrer"
-                            />
-                        </div>
-                    ` : `
-                        <div class="w-full h-64 bg-white/5 rounded-2xl border border-dashed border-white/10 flex items-center justify-center text-zinc-600">
-                            No cat generated yet
-                        </div>
-                    `}
-                </div>
+// Removed renderOthers and associated cat generator functionality.
 
-                <button 
-                    onclick="window.generateRandomCat()"
-                    class="bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-4 px-8 rounded-2xl transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2 mx-auto active:scale-95"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-                    Generate Random Cat
-                </button>
-            </div>
-        </div>
-    `;
-}
+// Removed renderVideoPlayer.
 
-window.generateRandomCat = () => {
-    const randomIndex = Math.floor(Math.random() * CAT_IMAGES.length);
-    currentCatImage = CAT_IMAGES[randomIndex];
-    render();
-};
-
-function renderVideoPlayer() {
-    mainContent.innerHTML = `
-        <div class="max-w-4xl mx-auto py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div class="bg-zinc-900/50 border border-white/10 rounded-3xl p-8 backdrop-blur-xl">
-                <div class="flex items-center gap-4 mb-8">
-                    <div class="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center text-red-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
-                    </div>
-                    <div>
-                        <h2 class="text-2xl font-bold">Video Player</h2>
-                        <p class="text-zinc-500 text-sm">Paste a YouTube URL or Video ID to watch</p>
-                    </div>
-                </div>
-
-                <div class="flex gap-2 mb-8">
-                    <div class="flex-1 relative">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
-                        <input 
-                            type="text" 
-                            id="youtube-url-input"
-                            placeholder="https://www.youtube.com/watch?v=..."
-                            class="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all placeholder:text-zinc-600"
-                        />
-                    </div>
-                    <button 
-                        onclick="window.loadVideo()"
-                        class="bg-red-500 hover:bg-red-600 text-white font-bold px-8 rounded-2xl transition-all shadow-lg shadow-red-500/20 active:scale-95"
-                    >
-                        Load
-                    </button>
-                </div>
-
-                <div class="aspect-video bg-black rounded-2xl overflow-hidden border border-white/5 shadow-2xl mb-8">
-                    ${currentVideoId ? `
-                        <iframe 
-                            width="100%" 
-                            height="100%" 
-                            src="https://www.youtube.com/embed/${currentVideoId}" 
-                            title="YouTube video player" 
-                            frameborder="0" 
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                            allowfullscreen
-                        ></iframe>
-                    ` : `
-                        <div class="w-full h-full flex flex-col items-center justify-center text-zinc-700 gap-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-20"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="m9 8 6 4-6 4Z"/></svg>
-                            <p class="font-medium">No video loaded</p>
-                        </div>
-                    `}
-                </div>
-
-                <div class="bg-white/5 rounded-2xl p-6 border border-white/5">
-                    <h3 class="text-lg font-bold mb-2 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                        How To get links
-                    </h3>
-                    <p class="text-zinc-400 text-sm leading-relaxed">
-                        Search on bing/google for a video you'd like 2 watch and click it then copy the url (make sure its youtube)
-                    </p>
-                </div>
-            </div>
-        </div>
-    `;
-
-    // Add enter key listener to input
-    const input = document.getElementById('youtube-url-input');
-    if (input) {
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') window.loadVideo();
-        });
-    }
-}
+// Removed unused code.
 
 function renderSuggest() {
     mainContent.innerHTML = `
         <div class="max-w-2xl mx-auto py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div class="bg-zinc-900/50 border border-white/10 rounded-3xl p-8 backdrop-blur-xl">
+            <div class="bg-zinc-900/50 border border-white/10 rounded-3xl p-8 backdrop-blur-xl mb-8">
                 <h2 class="text-3xl font-bold mb-4">Suggest a New Game</h2>
                 <p class="text-zinc-500 mb-8">Have a game you want to see? Let us know!</p>
                 <div class="space-y-4">
@@ -419,6 +367,30 @@ function renderSuggest() {
         </div>
     `;
 }
+
+window.deleteSuggestion = async (id) => {
+    if (!confirm("Are you sure you want to delete this suggestion?")) return;
+    try {
+        await deleteDoc(doc(db, 'suggestions', id));
+    } catch (e) {
+        console.error("Delete error:", e);
+        alert("Failed to delete suggestion: " + e.message);
+    }
+};
+
+window.purgeAllSuggestions = async () => {
+    if (!confirm("Are you sure you want to delete ALL suggestions?")) return;
+    try {
+        const snapshot = await getDocs(collection(db, 'suggestions'));
+        const batch = writeBatch(db);
+        snapshot.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        alert('All suggestions purged!');
+    } catch (e) {
+        console.error("Purge error:", e);
+        alert("Failed to purge suggestions: " + e.message);
+    }
+};
 
 window.submitSuggestion = async () => {
     const title = document.getElementById('suggestion-title').value.trim();
@@ -607,32 +579,146 @@ window.toggleFullscreen = () => {
     }
 };
 
-window.loadVideo = () => {
-    const input = document.getElementById('youtube-url-input');
-    const val = input.value.trim();
-    if (!val) return;
+// Removed loadVideo.
 
-    let videoId;
+function renderCategories() {
+    const categories = [...new Set(games.map(g => g.category))];
+    mainContent.innerHTML = `
+        <div class="max-w-7xl mx-auto py-12 animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-12">
+            ${categories.map(cat => `
+                <div class="space-y-4">
+                    <h2 class="text-2xl font-bold text-white">${cat}</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        ${games.filter(g => g.category === cat).map(game => `
+                            <button onclick="window.selectGame('${game.id}')" class="group relative overflow-hidden rounded-2xl aspect-video border border-white/10 hover:border-emerald-500/50 transition-all">
+                                <img src="${game.thumbnail}" alt="${game.title}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerpolicy="no-referrer" />
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
+                                    <span class="font-bold text-white">${game.title}</span>
+                                </div>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// Removed joinTutorboi as it is no longer needed.
+
+function renderAIChat() {
+    mainContent.innerHTML = `
+        <div class="max-w-4xl mx-auto py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div class="bg-zinc-900/50 border border-white/10 rounded-3xl p-8 backdrop-blur-xl h-[600px] flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">AI Chat</h2>
+                    <button onclick="window.createNewAIChat()" class="bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-2 px-4 rounded-xl transition-all">New Chat</button>
+                </div>
+                <div id="chat-messages" class="flex-1 overflow-y-auto mb-4 space-y-4"></div>
+                <div class="flex gap-2">
+                    <input type="file" id="image-upload" accept="image/*" class="hidden">
+                    <button onclick="document.getElementById('image-upload').click()" class="bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-3 px-4 rounded-xl transition-all">Upload</button>
+                    <input type="text" id="chat-input" placeholder="Type a message..." class="flex-1 bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all">
+                    <button onclick="window.sendAIMessage()" class="bg-emerald-500 hover:bg-emerald-600 text-black font-bold py-3 px-6 rounded-xl transition-all">Send</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+let userAIChat = null;
+
+window.sendAIMessage = async () => {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    if (!message) return;
+
+    if (!userAIChat) {
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        userAIChat = ai.chats.create({
+            model: "gemini-3-flash-preview",
+            config: {
+                systemInstruction: "You are a helpful AI assistant.",
+            },
+        });
+    }
+
+    // Add user message to UI
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.innerHTML += `<div class="text-right text-white bg-emerald-600 p-2 rounded-lg">${message}</div>`;
+    input.value = '';
+
+    // Send message to Gemini
+    const response = await userAIChat.sendMessage({ message });
     
-    // Extract ID from various YouTube URL formats
-    if (val.includes('youtube.com/watch?v=')) {
-        videoId = val.split('v=')[1].split('&')[0];
-    } else if (val.includes('youtu.be/')) {
-        videoId = val.split('youtu.be/')[1].split('?')[0];
-    } else if (val.includes('youtube.com/embed/')) {
-        videoId = val.split('embed/')[1].split('?')[0];
-    } else {
-        // Assume it's a direct ID
-        videoId = val;
-    }
-
-    if (videoId) {
-        currentVideoId = videoId;
-        render();
-    } else {
-        alert('Invalid YouTube URL or Video ID');
-    }
+    // Add AI response to UI
+    const html = marked.parse(response.text);
+    const renderedHtml = html.replace(/\$(.*?)\$/g, (match, p1) => {
+        try {
+            return katex.renderToString(p1, { throwOnError: false });
+        } catch (e) {
+            return match;
+        }
+    });
+    
+    chatMessages.innerHTML += `<div class="text-left text-white bg-zinc-700 p-2 rounded-lg">${renderedHtml}</div>`;
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 };
+
+window.createNewAIChat = () => {
+    userAIChat = null;
+    document.getElementById('chat-messages').innerHTML = '';
+};
+
+// Note: This needs to be called after renderAIChat is called, or use event delegation
+document.addEventListener('change', async (e) => {
+    if (e.target.id === 'image-upload') {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const base64Image = event.target.result.split(',')[1];
+            const mimeType = file.type;
+
+            // Add user image to UI
+            const chatMessages = document.getElementById('chat-messages');
+            chatMessages.innerHTML += `<div class="text-right"><img src="${event.target.result}" class="max-w-[200px] rounded-lg inline-block" /></div>`;
+
+            if (!userAIChat) {
+                const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+                userAIChat = ai.chats.create({
+                    model: "gemini-3-flash-preview",
+                    config: {
+                        systemInstruction: "You are a helpful AI assistant.",
+                    },
+                });
+            }
+
+            const response = await tutorboiChat.sendMessage({
+                message: {
+                    parts: [
+                        { inlineData: { data: base64Image, mimeType } },
+                        { text: "What is this?" }
+                    ]
+                }
+            });
+            const html = marked.parse(response.text);
+            const renderedHtml = html.replace(/\$(.*?)\$/g, (match, p1) => {
+                try {
+                    return katex.renderToString(p1, { throwOnError: false });
+                } catch (e) {
+                    return match;
+                }
+            });
+            chatMessages.innerHTML += `<div class="text-left text-white bg-zinc-700 p-2 rounded-lg">${renderedHtml}</div>`;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// ...
 
 function renderTrusted() {
     if (!isTrusted) {
@@ -705,21 +791,21 @@ function renderTrusted() {
                                 <tr class="group">
                                     <td class="py-4 font-medium">${user.username}</td>
                                     <td class="py-4">
-                                        <span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase ${user.isMuted ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-500'}">
-                                            ${user.isMuted ? (user.mutedUntil ? `Muted until ${new Date(user.mutedUntil.toMillis()).toLocaleTimeString()}` : 'Muted') : 'Active'}
+                                        <span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase ${activeUsers.includes(user.username) ? 'bg-emerald-500/20 text-emerald-500' : 'bg-zinc-500/20 text-zinc-500'}">
+                                            ${activeUsers.includes(user.username) ? 'Online' : 'Offline'}
                                         </span>
                                     </td>
                                     <td class="py-4">
                                         <div class="flex items-center gap-2">
                                             <button 
-                                                onclick="window.promptMute('${user.username}', ${user.isMuted})"
+                                                onclick="window.promptMute('${user.uid}', '${user.username}', ${user.isMuted})"
                                                 class="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-zinc-400 hover:text-white"
                                                 title="${user.isMuted ? 'Unmute' : 'Mute'}"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${user.isMuted ? '<path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>' : '<path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>'}</svg>
                                             </button>
                                             <button 
-                                                onclick="window.triggerJumpscare('${user.uid}')"
+                                                onclick="window.openJumpscareModal('${user.uid}')"
                                                 class="p-2 rounded-lg bg-white/5 hover:bg-red-500/20 transition-colors text-zinc-400 hover:text-red-500"
                                                 title="Jumpscare"
                                             >
@@ -771,6 +857,7 @@ function renderTrusted() {
                             <p class="text-zinc-500 text-sm">Review user suggested games</p>
                         </div>
                     </div>
+                    <button onclick="window.purgeAllSuggestions()" class="text-red-500 hover:text-red-400 text-sm font-bold">Purge All</button>
                 </div>
 
                 <div class="overflow-x-auto mb-8">
@@ -780,6 +867,7 @@ function renderTrusted() {
                                 <th class="pb-4 font-medium">Username</th>
                                 <th class="pb-4 font-medium">Title</th>
                                 <th class="pb-4 font-medium">Description</th>
+                                <th class="pb-4 font-medium">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-white/5">
@@ -788,6 +876,9 @@ function renderTrusted() {
                                     <td class="py-4 font-medium">${s.username}</td>
                                     <td class="py-4">${s.title}</td>
                                     <td class="py-4 text-zinc-400">${s.desc}</td>
+                                    <td class="py-4">
+                                        <button onclick="window.deleteSuggestion('${s.id}')" class="text-red-500 hover:text-red-400 text-sm">Delete</button>
+                                    </td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -827,6 +918,15 @@ function renderTrusted() {
                                 Send
                             </button>
                         </div>
+                    </div>
+
+                    <div class="p-6 bg-white/5 rounded-2xl border border-white/5">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                            Image Management
+                        </h3>
+                        <p class="text-zinc-500 text-sm mb-4">Upload a new image to the site.</p>
+                        <button id="open-image-upload-btn" class="w-full bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-3 rounded-xl transition-all">Upload Image</button>
                     </div>
                 </div>
             </div>
@@ -1233,10 +1333,10 @@ window.removeUser = async (uid) => {
 };
 
 
-window.promptMute = async (username, isMuted) => {
+window.promptMute = async (uid, username, isMuted) => {
     if (isMuted) {
         try {
-            await updateDoc(doc(db, 'users', username), {
+            await updateDoc(doc(db, 'users', uid), {
                 isMuted: false,
                 mutedUntil: null
             });
@@ -1252,7 +1352,7 @@ window.promptMute = async (username, isMuted) => {
         const mutedUntil = duration ? new Date(Date.now() + parseInt(duration) * 60000) : null;
 
         try {
-            await updateDoc(doc(db, 'users', username), {
+            await updateDoc(doc(db, 'users', uid), {
                 isMuted: true,
                 mutedUntil: mutedUntil
             });
@@ -1264,6 +1364,7 @@ window.promptMute = async (username, isMuted) => {
     }
 };
 
+// ... existing code ...
 window.promptPrivateMessage = async (username, name) => {
     const msg = prompt(`Send a private announcement to ${name}:`);
     if (!msg) return;
@@ -1280,6 +1381,25 @@ window.promptPrivateMessage = async (username, name) => {
         alert("Failed to send message.");
     }
 };
+
+document.addEventListener('visibilitychange', () => {
+    console.log('Visibility changed to:', document.visibilityState);
+    if (document.visibilityState === 'visible') {
+        updateUserStatus('active');
+    } else {
+        updateUserStatus('inactive');
+    }
+});
+
+function updateUserStatus(status) {
+    if (!chatUsername) return;
+    const userRef = doc(db, 'active_users', chatUsername);
+    if (status === 'active') {
+        setDoc(userRef, { username: chatUsername, lastSeen: serverTimestamp() });
+    } else {
+        deleteDoc(userRef);
+    }
+}
 
 function handleFirestoreError(error, operationType, path) {
     const errInfo = {
@@ -1337,8 +1457,10 @@ function initFirebaseChat() {
             const lastSeen = data.lastSeen?.toMillis() || 0;
             return (now - lastSeen) < 120000; // Active in last 2 minutes
         });
+        activeUsers = active.map(doc => doc.data().username);
         userCount = active.length;
         if (currentView === 'chat') renderChat();
+        if (currentView === 'trusted') render();
     }, (error) => handleFirestoreError(error, OperationType.GET, 'active_users'));
 
     // Heartbeat
@@ -1663,15 +1785,7 @@ navChat.addEventListener('click', () => {
     render();
 });
 
-navOthers.addEventListener('click', () => {
-    currentView = 'others';
-    render();
-});
-
-navVideo.addEventListener('click', () => {
-    currentView = 'video';
-    render();
-});
+// ...
 
 navThemes.addEventListener('click', () => {
     currentView = 'themes';
@@ -1687,6 +1801,18 @@ navTrusted.addEventListener('click', () => {
     currentView = 'trusted';
     render();
 });
+
+navCategories.addEventListener('click', () => {
+    currentView = 'categories';
+    render();
+});
+
+navAIChat.addEventListener('click', () => {
+    currentView = 'aichat';
+    render();
+});
+
+// ...
 
 // Initial render
 render();
@@ -1719,12 +1845,15 @@ async function registerUser(uid, name) {
 }
 
 function initUserListeners(uid) {
-    if (!db) return;
+    if (!db) {
+        setTimeout(() => initUserListeners(uid), 100);
+        return;
+    }
     onSnapshot(doc(db, 'users', uid), (snapshot) => {
         if (snapshot.exists()) {
             const data = snapshot.data();
             if (data.jumpscareTriggered) {
-                triggerJumpscareEffect(uid);
+                triggerJumpscareEffect(uid, data.jumpscareType || 1);
             }
             if (data.fullscreenTriggered) {
                 window.toggleFullscreen();
@@ -1738,28 +1867,91 @@ function initUserListeners(uid) {
     });
 }
 
-function triggerJumpscareEffect(uid) {
+function triggerJumpscareEffect(uid, type = 1) {
     const overlay = document.getElementById('jumpscare-overlay');
+    const img = document.getElementById('jumpscare-img');
+    const video = document.getElementById('jumpscare-video');
+    const videoSource = video.querySelector('source');
     overlay.classList.remove('hidden');
     
-    // Reset the GIF by re-setting the src
-    const img = document.getElementById('jumpscare-img');
-    img.src = 'https://i.makeagif.com/media/1-22-2016/7f3UOH.gif?t=' + Date.now();
+    // Reset
+    img.classList.add('hidden');
+    video.classList.add('hidden');
+    video.pause();
+    video.currentTime = 0;
 
-    setTimeout(async () => {
-        overlay.classList.add('hidden');
-        if (db) {
-            await updateDoc(doc(db, 'users', uid), {
-                jumpscareTriggered: false
-            });
-        }
-    }, 3000); // GIF duration approx 3 seconds
+    if (type === 1) {
+        // Jeff the Killer
+        img.classList.remove('hidden');
+        img.src = 'https://gifdb.com/images/high/jeff-the-killer-animated-face-laughing-ha67dpqdsbl9wx80.gif';
+        setTimeout(async () => {
+            overlay.classList.add('hidden');
+            if (db) {
+                await updateDoc(doc(db, 'users', uid), { jumpscareTriggered: false });
+            }
+        }, 3000);
+    } else if (type === 2) {
+        // Jumpscare 2
+        img.classList.remove('hidden');
+        const images = [
+            'https://i.pinimg.com/474x/83/b0/87/83b087b2f75d6e8dc96bbe815a729799.jpg?nii=t',
+            'https://static1.colliderimages.com/wordpress/wp-content/uploads/2023/01/analog-horror.jpg',
+            'https://d3q27bh1u24u2o.cloudfront.net/news/LBB_-_New_40_2bKD7fT.png',
+            'https://i.pinimg.com/236x/fc/28/9d/fc289d40780f057480a4adeb468bb370.jpg',
+            'https://i.pinimg.com/originals/3b/41/d1/3b41d10814afbe160cfdc41fb0eca3f8.jpg',
+            'https://preview.redd.it/the-source-of-all-the-tapping-i-heard-last-night-v0-anyvsoze8aha1.jpg?width=1080&crop=smart&auto=webp&s=7845a263b023cf244a6c40aff1c12a1834397db8'
+        ];
+        const lastImage = 'https://wallpaperaccess.com/full/14378199.jpg';
+        const jumpSound = new Audio('https://videotourl.com/audio/1775867546961-6db9970d-d3ed-4052-9163-9432a61c5f29.mp3');
+        jumpSound.play();
+
+        // Jitter effect
+        const jitterInterval = setInterval(() => {
+            overlay.style.opacity = Math.random() > 0.5 ? '1' : '0';
+        }, 50);
+
+        // Image switching
+        let imgIndex = 0;
+        const switchInterval = setInterval(() => {
+            img.src = images[imgIndex % images.length];
+            imgIndex++;
+        }, 100);
+
+        setTimeout(() => {
+            clearInterval(switchInterval);
+            img.src = lastImage;
+            setTimeout(async () => {
+                clearInterval(jitterInterval);
+                jumpSound.pause();
+                jumpSound.currentTime = 0;
+                overlay.style.opacity = '1';
+                overlay.classList.add('hidden');
+                if (db) {
+                    await updateDoc(doc(db, 'users', uid), { jumpscareTriggered: false });
+                }
+            }, 3000);
+        }, 3000);
+    } else if (type === 3) {
+        // Jumpscare 3
+        video.classList.remove('hidden');
+        videoSource.src = 'https://image2url.com/r2/default/videos/1775872381737-f4c3474e-a2af-40a0-a16d-4c81b7be8097.mp4';
+        video.load();
+        video.play();
+        
+        video.onended = async () => {
+            overlay.classList.add('hidden');
+            if (db) {
+                await updateDoc(doc(db, 'users', uid), { jumpscareTriggered: false });
+            }
+        };
+    }
 }
 
-window.triggerJumpscare = async (uid) => {
+window.triggerJumpscare = async (uid, type = 1) => {
     if (!db) return;
     await updateDoc(doc(db, 'users', uid), {
-        jumpscareTriggered: true
+        jumpscareTriggered: true,
+        jumpscareType: type
     });
 };
 
@@ -1790,10 +1982,8 @@ window.triggerFullscreen = async (uid) => {
 };
 
 window.promptImageScreen = (uid) => {
-    const url = prompt('Enter image URL:');
-    if (url) {
-        window.triggerImageScreen(uid, url);
-    }
+    currentJumpscareUid = uid; // Reuse this variable to store the target UID
+    document.getElementById('image-upload-modal').classList.remove('hidden');
 };
 
 window.triggerImageScreen = async (uid, imageUrl) => {
@@ -1823,35 +2013,112 @@ window.openUploadModal = () => {
     document.getElementById('upload-game-modal').classList.remove('hidden');
 };
 
-document.getElementById('upload-cancel-btn').addEventListener('click', () => {
-    document.getElementById('upload-game-modal').classList.add('hidden');
-});
-
-document.getElementById('upload-submit-btn').addEventListener('click', async () => {
-    const title = document.getElementById('upload-title').value;
-    const thumbnail = document.getElementById('upload-thumbnail').value;
-    const htmlContent = document.getElementById('upload-html').value;
-
-    if (!title || !thumbnail || !htmlContent) {
-        alert('Please fill in all fields');
-        return;
-    }
-
-    try {
-        await addDoc(collection(db, 'games'), {
-            title,
-            thumbnail,
-            htmlContent,
-            uploaderUid: auth.currentUser.uid,
-            createdAt: serverTimestamp()
-        });
+const uploadCancelBtn = document.getElementById('upload-cancel-btn');
+if (uploadCancelBtn) {
+    uploadCancelBtn.addEventListener('click', () => {
         document.getElementById('upload-game-modal').classList.add('hidden');
-        alert('Game uploaded successfully!');
-        // Refresh games list if needed
-    } catch (error) {
-        console.error('Error uploading game:', error);
-        alert('Failed to upload game');
-    }
-});
+    });
+}
+
+let currentJumpscareUid = null;
+
+window.openJumpscareModal = (uid) => {
+    currentJumpscareUid = uid;
+    document.getElementById('jumpscare-modal').classList.remove('hidden');
+};
+
+const jumpscareCancelBtn = document.getElementById('jumpscare-cancel-btn');
+if (jumpscareCancelBtn) {
+    jumpscareCancelBtn.addEventListener('click', () => {
+        document.getElementById('jumpscare-modal').classList.add('hidden');
+    });
+}
+
+const jumpscare1Btn = document.getElementById('jumpscare-1-btn');
+if (jumpscare1Btn) {
+    jumpscare1Btn.addEventListener('click', () => {
+        document.getElementById('jumpscare-modal').classList.add('hidden');
+        window.triggerJumpscare(currentJumpscareUid, 1);
+    });
+}
+
+const jumpscare2Btn = document.getElementById('jumpscare-2-btn');
+if (jumpscare2Btn) {
+    jumpscare2Btn.addEventListener('click', () => {
+        document.getElementById('jumpscare-modal').classList.add('hidden');
+        window.triggerJumpscare(currentJumpscareUid, 2);
+    });
+}
+
+const jumpscare3Btn = document.getElementById('jumpscare-3-btn');
+if (jumpscare3Btn) {
+    jumpscare3Btn.addEventListener('click', () => {
+        document.getElementById('jumpscare-modal').classList.add('hidden');
+        window.triggerJumpscare(currentJumpscareUid, 3);
+    });
+}
+
+const imageUploadCancelBtn = document.getElementById('image-upload-cancel-btn');
+if (imageUploadCancelBtn) {
+    imageUploadCancelBtn.addEventListener('click', () => {
+        document.getElementById('image-upload-modal').classList.add('hidden');
+    });
+}
+
+const imageUploadSubmitBtn = document.getElementById('image-upload-submit-btn');
+if (imageUploadSubmitBtn) {
+    imageUploadSubmitBtn.addEventListener('click', async () => {
+        const url = document.getElementById('upload-image-url').value;
+        if (url) {
+            if (currentJumpscareUid) {
+                window.triggerImageScreen(currentJumpscareUid, url);
+                currentJumpscareUid = null; // Reset
+            } else {
+                // Here you would add logic to save the image URL, for now just log it
+                console.log('Image uploaded:', url);
+            }
+            document.getElementById('image-upload-modal').classList.add('hidden');
+            document.getElementById('upload-image-url').value = ''; // Clear input
+            alert('Image uploaded successfully!');
+        }
+    });
+}
+
+const openImageUploadBtn = document.getElementById('open-image-upload-btn');
+if (openImageUploadBtn) {
+    openImageUploadBtn.addEventListener('click', () => {
+        document.getElementById('image-upload-modal').classList.remove('hidden');
+    });
+}
+
+const uploadSubmitBtn = document.getElementById('upload-submit-btn');
+if (uploadSubmitBtn) {
+    uploadSubmitBtn.addEventListener('click', async () => {
+        const title = document.getElementById('upload-title').value;
+        const thumbnail = document.getElementById('upload-thumbnail').value;
+        const htmlContent = document.getElementById('upload-html').value;
+
+        if (!title || !thumbnail || !htmlContent) {
+            alert('Please fill in all fields');
+            return;
+        }
+
+        try {
+            await addDoc(collection(db, 'games'), {
+                title,
+                thumbnail,
+                htmlContent,
+                uploaderUid: auth.currentUser.uid,
+                createdAt: serverTimestamp()
+            });
+            document.getElementById('upload-game-modal').classList.add('hidden');
+            alert('Game uploaded successfully!');
+            // Refresh games list if needed
+        } catch (error) {
+            console.error('Error uploading game:', error);
+            alert('Failed to upload game');
+        }
+    });
+}
 
 
