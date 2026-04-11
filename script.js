@@ -42,6 +42,7 @@ fetch('./firebase-applet-config.json')
                 initUserListeners(user.uid);
                 checkEntryLogin();
             }
+            render(); // Call render here
         });
 
         if (chatUsername) initFirebaseChat();
@@ -1815,7 +1816,7 @@ navAIChat.addEventListener('click', () => {
 // ...
 
 // Initial render
-render();
+// render(); // Removed, now called inside Firebase init
 if (chatUsername) initFirebaseChat();
 
 function checkEntryLogin() {
