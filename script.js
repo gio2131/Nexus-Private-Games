@@ -312,6 +312,7 @@ navAIChat.addEventListener('click', () => {
 
 function render() {
     console.log("Rendering...");
+    const mainContent = document.getElementById('main-content');
     if (!mainContent) {
         console.error("mainContent is null!");
         return;
@@ -1778,47 +1779,61 @@ searchInput.addEventListener('input', (e) => {
     if (currentView === 'games' && !selectedGame) renderGrid();
 });
 
-logo.addEventListener('click', () => {
-    selectedGame = null;
-    currentView = 'games';
-    searchQuery = '';
-    searchInput.value = '';
-    render();
-});
+if (logo) {
+    logo.addEventListener('click', () => {
+        selectedGame = null;
+        currentView = 'games';
+        searchQuery = '';
+        if (searchInput) searchInput.value = '';
+        render();
+    });
+}
 
-navGames.addEventListener('click', () => {
-    currentView = 'games';
-    selectedGame = null;
-    render();
-});
+if (navGames) {
+    navGames.addEventListener('click', () => {
+        currentView = 'games';
+        selectedGame = null;
+        render();
+    });
+}
 
-navChat.addEventListener('click', () => {
-    currentView = 'chat';
-    if (chatUsername) initFirebaseChat();
-    render();
-});
+if (navChat) {
+    navChat.addEventListener('click', () => {
+        currentView = 'chat';
+        if (chatUsername) initFirebaseChat();
+        render();
+    });
+}
 
 // ...
 
-navThemes.addEventListener('click', () => {
-    currentView = 'themes';
-    render();
-});
+if (navThemes) {
+    navThemes.addEventListener('click', () => {
+        currentView = 'themes';
+        render();
+    });
+}
 
-navSuggest.addEventListener('click', () => {
-    currentView = 'suggest';
-    render();
-});
+if (navSuggest) {
+    navSuggest.addEventListener('click', () => {
+        currentView = 'suggest';
+        render();
+    });
+}
 
-navTrusted.addEventListener('click', () => {
-    currentView = 'trusted';
-    render();
-});
+if (navTrusted) {
+    navTrusted.addEventListener('click', () => {
+        currentView = 'trusted';
+        render();
+    });
+}
 
-navCategories.addEventListener('click', () => {
-    currentView = 'categories';
-    render();
-});
+if (navCategories) {
+    navCategories.addEventListener('click', () => {
+        currentView = 'categories';
+        render();
+    });
+}
 
 navAIChat.addEventListener('click', () => {
     currentView = 'aichat';
@@ -1833,6 +1848,10 @@ if (chatUsername) initFirebaseChat();
 
 function checkEntryLogin() {
     const overlay = document.getElementById('entry-login-overlay');
+    if (sessionStorage.getItem('user_name')) {
+        overlay.classList.add('hidden');
+        return;
+    }
     overlay.classList.remove('hidden');
     document.getElementById('entry-login-btn').onclick = async () => {
         const name = document.getElementById('entry-name-input').value.trim();
