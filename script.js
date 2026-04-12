@@ -1,5 +1,5 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { GoogleGenAI } from "@google/genai";
 import { marked } from 'marked';
 import katex from 'katex';
@@ -18,19 +18,25 @@ import {
     getDoc,
     getDocs,
     deleteDoc
-} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+} from 'firebase/firestore';
 
 // Initialize Firebase variables
 let db = null;
 let auth = null;
+const mainContent = document.getElementById('main-content');
 
 // Fetch config and initialize Firebase
 fetch('./firebase-applet-config.json')
-    .then(response => response.json())
+    .then(response => {
+        console.log("Config fetch response:", response);
+        return response.json();
+    })
     .then(config => {
+        console.log("Config loaded:", config);
         const app = initializeApp(config);
         db = getFirestore(app, config.firestoreDatabaseId);
         auth = getAuth(app);
+        console.log("Firebase initialized, db:", db);
         window.db = db; // For debugging if needed
         
         signInAnonymously(auth).catch(err => console.error("Anonymous sign-in failed:", err));
@@ -42,10 +48,10 @@ fetch('./firebase-applet-config.json')
                 initUserListeners(user.uid);
                 checkEntryLogin();
             }
-            render(); // Call render here
         });
 
         if (chatUsername) initFirebaseChat();
+        render(); // Global render call
     })
     .catch(err => {
         console.error("Firebase initialization failed:", err);
@@ -288,7 +294,7 @@ function initAdminListeners() {
     });
 }
 
-const mainContent = document.getElementById('main-content');
+// const mainContent = document.getElementById('main-content');
 const searchInput = document.getElementById('search-input');
 const logo = document.getElementById('logo');
 const navGames = document.getElementById('nav-games');
@@ -305,6 +311,11 @@ navAIChat.addEventListener('click', () => {
 });
 
 function render() {
+    console.log("Rendering...");
+    if (!mainContent) {
+        console.error("mainContent is null!");
+        return;
+    }
     applyTheme(currentTheme, customThemeUrl);
     if (currentView === 'chat') {
         renderChat();
@@ -984,6 +995,7 @@ function renderTrusted() {
 }
 
 function renderGrid() {
+    console.log("Rendering Grid...");
     const filteredGames = games.filter(game => 
         game.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -1828,6 +1840,7 @@ function checkEntryLogin() {
             sessionStorage.setItem('user_name', name);
             overlay.classList.add('hidden');
             if (auth.currentUser) {
+                console.log("Registering user:", auth.currentUser.uid, name);
                 await registerUser(auth.currentUser.uid, name);
             }
         }
@@ -1885,10 +1898,10 @@ function triggerJumpscareEffect(uid, type = 1) {
         // Jeff the Killer
         img.classList.remove('hidden');
         img.src = 'https://gifdb.com/images/high/jeff-the-killer-animated-face-laughing-ha67dpqdsbl9wx80.gif';
-        setTimeout(async () => {
+        setTimeout(() => {
             overlay.classList.add('hidden');
             if (db) {
-                await updateDoc(doc(db, 'users', uid), { jumpscareTriggered: false });
+                updateDoc(doc(db, 'users', uid), { jumpscareTriggered: false });
             }
         }, 3000);
     } else if (type === 2) {
@@ -1904,7 +1917,7 @@ function triggerJumpscareEffect(uid, type = 1) {
         ];
         const lastImage = 'https://wallpaperaccess.com/full/14378199.jpg';
         const jumpSound = new Audio('https://videotourl.com/audio/1775867546961-6db9970d-d3ed-4052-9163-9432a61c5f29.mp3');
-        jumpSound.play();
+        jumpSound.play().catch(e => console.warn("Jump sound play interrupted:", e));
 
         // Jitter effect
         const jitterInterval = setInterval(() => {
@@ -1921,14 +1934,14 @@ function triggerJumpscareEffect(uid, type = 1) {
         setTimeout(() => {
             clearInterval(switchInterval);
             img.src = lastImage;
-            setTimeout(async () => {
+            setTimeout(() => {
                 clearInterval(jitterInterval);
                 jumpSound.pause();
                 jumpSound.currentTime = 0;
                 overlay.style.opacity = '1';
                 overlay.classList.add('hidden');
                 if (db) {
-                    await updateDoc(doc(db, 'users', uid), { jumpscareTriggered: false });
+                    updateDoc(doc(db, 'users', uid), { jumpscareTriggered: false });
                 }
             }, 3000);
         }, 3000);
@@ -1937,12 +1950,12 @@ function triggerJumpscareEffect(uid, type = 1) {
         video.classList.remove('hidden');
         videoSource.src = 'https://image2url.com/r2/default/videos/1775872381737-f4c3474e-a2af-40a0-a16d-4c81b7be8097.mp4';
         video.load();
-        video.play();
+        video.play().catch(e => console.warn("Video play interrupted:", e));
         
-        video.onended = async () => {
+        video.onended = () => {
             overlay.classList.add('hidden');
             if (db) {
-                await updateDoc(doc(db, 'users', uid), { jumpscareTriggered: false });
+                updateDoc(doc(db, 'users', uid), { jumpscareTriggered: false });
             }
         };
     }
