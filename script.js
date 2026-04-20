@@ -262,7 +262,10 @@ window.closeGame = () => {
 };
 
 document.getElementById('maintenance-ok-btn')?.addEventListener('click', () => {
-    document.getElementById('maintenance-modal').classList.add('hidden');
+    console.log("Maintenance OK clicked, removing modal and checking login.");
+    const modal = document.getElementById('maintenance-modal');
+    modal.remove();
+    checkEntryLogin();
 });
 
 fetch('firebase-applet-config.json')
