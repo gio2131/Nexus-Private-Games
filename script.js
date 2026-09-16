@@ -1,5 +1,5 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { GoogleGenAI } from "@google/genai";
 import { marked } from 'marked';
 import katex from 'katex';
@@ -18,25 +18,19 @@ import {
     getDoc,
     getDocs,
     deleteDoc
-} from 'firebase/firestore';
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 // Initialize Firebase variables
 let db = null;
 let auth = null;
-const mainContent = document.getElementById('main-content');
 
 // Fetch config and initialize Firebase
-fetch('firebase-applet-config.json')
-    .then(response => {
-        console.log("Config fetch response:", response);
-        return response.json();
-    })
+fetch('./firebase-applet-config.json')
+    .then(response => response.json())
     .then(config => {
-        console.log("Config loaded:", config);
         const app = initializeApp(config);
         db = getFirestore(app, config.firestoreDatabaseId);
         auth = getAuth(app);
-        console.log("Firebase initialized, db:", db);
         window.db = db; // For debugging if needed
         
         signInAnonymously(auth).catch(err => console.error("Anonymous sign-in failed:", err));
@@ -51,7 +45,6 @@ fetch('firebase-applet-config.json')
         });
 
         if (chatUsername) initFirebaseChat();
-        render(); // Global render call
     })
     .catch(err => {
         console.error("Firebase initialization failed:", err);
@@ -294,7 +287,7 @@ function initAdminListeners() {
     });
 }
 
-// const mainContent = document.getElementById('main-content');
+const mainContent = document.getElementById('main-content');
 const searchInput = document.getElementById('search-input');
 const logo = document.getElementById('logo');
 const navGames = document.getElementById('nav-games');
@@ -311,13 +304,6 @@ navAIChat.addEventListener('click', () => {
 });
 
 function render() {
-    console.log("Rendering...", { currentView, selectedGame });
-    const mainContent = document.getElementById('main-content');
-    if (!mainContent) {
-        console.error("mainContent is null!");
-        return;
-    }
-    console.log("mainContent found:", mainContent);
     applyTheme(currentTheme, customThemeUrl);
     if (currentView === 'chat') {
         renderChat();
@@ -997,7 +983,6 @@ function renderTrusted() {
 }
 
 function renderGrid() {
-    console.log("Rendering Grid...");
     const filteredGames = games.filter(game => 
         game.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -1780,61 +1765,47 @@ searchInput.addEventListener('input', (e) => {
     if (currentView === 'games' && !selectedGame) renderGrid();
 });
 
-if (logo) {
-    logo.addEventListener('click', () => {
-        selectedGame = null;
-        currentView = 'games';
-        searchQuery = '';
-        if (searchInput) searchInput.value = '';
-        render();
-    });
-}
+logo.addEventListener('click', () => {
+    selectedGame = null;
+    currentView = 'games';
+    searchQuery = '';
+    searchInput.value = '';
+    render();
+});
 
-if (navGames) {
-    navGames.addEventListener('click', () => {
-        currentView = 'games';
-        selectedGame = null;
-        render();
-    });
-}
+navGames.addEventListener('click', () => {
+    currentView = 'games';
+    selectedGame = null;
+    render();
+});
 
-if (navChat) {
-    navChat.addEventListener('click', () => {
-        currentView = 'chat';
-        if (chatUsername) initFirebaseChat();
-        render();
-    });
-}
+navChat.addEventListener('click', () => {
+    currentView = 'chat';
+    if (chatUsername) initFirebaseChat();
+    render();
+});
 
 // ...
 
-if (navThemes) {
-    navThemes.addEventListener('click', () => {
-        currentView = 'themes';
-        render();
-    });
-}
+navThemes.addEventListener('click', () => {
+    currentView = 'themes';
+    render();
+});
 
-if (navSuggest) {
-    navSuggest.addEventListener('click', () => {
-        currentView = 'suggest';
-        render();
-    });
-}
+navSuggest.addEventListener('click', () => {
+    currentView = 'suggest';
+    render();
+});
 
-if (navTrusted) {
-    navTrusted.addEventListener('click', () => {
-        currentView = 'trusted';
-        render();
-    });
-}
+navTrusted.addEventListener('click', () => {
+    currentView = 'trusted';
+    render();
+});
 
-if (navCategories) {
-    navCategories.addEventListener('click', () => {
-        currentView = 'categories';
-        render();
-    });
-}
+navCategories.addEventListener('click', () => {
+    currentView = 'categories';
+    render();
+});
 
 navAIChat.addEventListener('click', () => {
     currentView = 'aichat';
@@ -1844,15 +1815,11 @@ navAIChat.addEventListener('click', () => {
 // ...
 
 // Initial render
-// render(); // Removed, now called inside Firebase init
+render();
 if (chatUsername) initFirebaseChat();
 
 function checkEntryLogin() {
     const overlay = document.getElementById('entry-login-overlay');
-    if (sessionStorage.getItem('user_name')) {
-        overlay.classList.add('hidden');
-        return;
-    }
     overlay.classList.remove('hidden');
     document.getElementById('entry-login-btn').onclick = async () => {
         const name = document.getElementById('entry-name-input').value.trim();
@@ -1860,7 +1827,6 @@ function checkEntryLogin() {
             sessionStorage.setItem('user_name', name);
             overlay.classList.add('hidden');
             if (auth.currentUser) {
-                console.log("Registering user:", auth.currentUser.uid, name);
                 await registerUser(auth.currentUser.uid, name);
             }
         }
@@ -1918,10 +1884,10 @@ function triggerJumpscareEffect(uid, type = 1) {
         // Jeff the Killer
         img.classList.remove('hidden');
         img.src = 'https://gifdb.com/images/high/jeff-the-killer-animated-face-laughing-ha67dpqdsbl9wx80.gif';
-        setTimeout(() => {
+        setTimeout(async () => {
             overlay.classList.add('hidden');
             if (db) {
-                updateDoc(doc(db, 'users', uid), { jumpscareTriggered: false });
+                await updateDoc(doc(db, 'users', uid), { jumpscareTriggered: false });
             }
         }, 3000);
     } else if (type === 2) {
@@ -1937,7 +1903,7 @@ function triggerJumpscareEffect(uid, type = 1) {
         ];
         const lastImage = 'https://wallpaperaccess.com/full/14378199.jpg';
         const jumpSound = new Audio('https://videotourl.com/audio/1775867546961-6db9970d-d3ed-4052-9163-9432a61c5f29.mp3');
-        jumpSound.play().catch(e => console.warn("Jump sound play interrupted:", e));
+        jumpSound.play();
 
         // Jitter effect
         const jitterInterval = setInterval(() => {
@@ -1954,14 +1920,14 @@ function triggerJumpscareEffect(uid, type = 1) {
         setTimeout(() => {
             clearInterval(switchInterval);
             img.src = lastImage;
-            setTimeout(() => {
+            setTimeout(async () => {
                 clearInterval(jitterInterval);
                 jumpSound.pause();
                 jumpSound.currentTime = 0;
                 overlay.style.opacity = '1';
                 overlay.classList.add('hidden');
                 if (db) {
-                    updateDoc(doc(db, 'users', uid), { jumpscareTriggered: false });
+                    await updateDoc(doc(db, 'users', uid), { jumpscareTriggered: false });
                 }
             }, 3000);
         }, 3000);
@@ -1970,12 +1936,12 @@ function triggerJumpscareEffect(uid, type = 1) {
         video.classList.remove('hidden');
         videoSource.src = 'https://image2url.com/r2/default/videos/1775872381737-f4c3474e-a2af-40a0-a16d-4c81b7be8097.mp4';
         video.load();
-        video.play().catch(e => console.warn("Video play interrupted:", e));
+        video.play();
         
-        video.onended = () => {
+        video.onended = async () => {
             overlay.classList.add('hidden');
             if (db) {
-                updateDoc(doc(db, 'users', uid), { jumpscareTriggered: false });
+                await updateDoc(doc(db, 'users', uid), { jumpscareTriggered: false });
             }
         };
     }
