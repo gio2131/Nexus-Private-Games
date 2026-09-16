@@ -18,3 +18,7 @@ View your app in AI Studio: https://ai.studio/apps/d3585b18-d86b-41b8-b323-4abde
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Publish to GitHub Pages
+
+Run `npm run build:pages`, then commit the generated `index.html` and `assets/` directory along with the source changes. GitHub Pages serves these browser-ready files from the root of `main`. Edit `index.source.html` for changes to the home page; the build command regenerates `index.html` from it.
